@@ -54,7 +54,7 @@ test("formatCountdown gère les événements futurs", () => {
   assert.equal(formatCountdown("2026-09-07T12:20:00.000Z", now), "Dans 20 min");
 });
 
-test("les vignettes distinguent clairement présent, futur et passé", () => {
+test("les vignettes utilisent uniquement les trois statuts du catalogue", () => {
   const upcoming = {
     ...videos[0],
     status: "upcoming",
@@ -65,10 +65,10 @@ test("les vignettes distinguent clairement présent, futur et passé", () => {
     actualEnd: "2026-09-06T20:00:00.000Z",
   };
 
-  assert.equal(getStatusLabel(videos[0]), "En direct maintenant");
-  assert.equal(getStatusLabel(upcoming), "Direct à venir");
-  assert.equal(getStatusLabel(completedLive), "Direct passé · Replay");
-  assert.equal(getStatusLabel(videos[1]), "Conférence passée · Replay");
+  assert.equal(getStatusLabel(videos[0]), "Direct");
+  assert.equal(getStatusLabel(upcoming), "À venir");
+  assert.equal(getStatusLabel(completedLive), "Replay");
+  assert.equal(getStatusLabel(videos[1]), "Replay");
   assert.match(getConferenceTimingLabel(upcoming), /^Prévu · .*2026/);
   assert.match(getConferenceTimingLabel(completedLive), /^Terminé · .*2026/);
   assert.match(formatDateTime(upcoming.scheduledStart), /2026/);

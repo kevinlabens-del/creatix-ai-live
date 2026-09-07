@@ -71,10 +71,9 @@ export function formatCountdown(value, now = Date.now()) {
 
 export function getStatusLabel(video) {
   const status = typeof video === "string" ? video : video?.status;
-  if (status === "live") return "En direct maintenant";
-  if (status === "upcoming") return "Direct à venir";
-  if (typeof video === "object" && video?.actualEnd) return "Direct passé · Replay";
-  return "Conférence passée · Replay";
+  if (status === "live") return "Direct";
+  if (status === "upcoming") return "À venir";
+  return "Replay";
 }
 
 export function getConferenceTimingLabel(video) {

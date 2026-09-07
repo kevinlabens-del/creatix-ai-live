@@ -1,4 +1,4 @@
-const CACHE_NAME = "creatix-ai-live-v3.2.0";
+const CACHE_NAME = "creatix-ai-live-v3.2.1";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
