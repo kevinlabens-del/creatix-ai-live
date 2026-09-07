@@ -1482,3 +1482,9 @@ footer span:first-child {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Netlify may inject a promotional deploy badge into manual uploads. It is not
+   part of the product and must never introduce an external action in the UI. */
+#nl-badge-frame {
+  display: none !important;
+}
