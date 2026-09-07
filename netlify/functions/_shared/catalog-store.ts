@@ -4,8 +4,8 @@ import { discoverYouTubeCatalog } from "./discovery";
 import type { CatalogPayload } from "./types";
 
 const STORE_NAME = "creatix-ai-live-catalog";
-const CATALOG_KEY = "catalog-v3.1.1";
-const LEGACY_CATALOG_KEYS = ["catalog-v3.1", "catalog-v3"];
+const CATALOG_KEY = "catalog-v3.2";
+const LEGACY_CATALOG_KEYS = ["catalog-v3.1.1", "catalog-v3.1", "catalog-v3"];
 
 export const fallbackCatalog = seedCatalogJson as CatalogPayload;
 

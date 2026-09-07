@@ -362,6 +362,7 @@ export function normalizeYouTubeVideo(
     publishedAt: item.snippet.publishedAt || now.toISOString(),
     scheduledStart: item.liveStreamingDetails?.scheduledStartTime,
     actualStart: item.liveStreamingDetails?.actualStartTime,
+    actualEnd: item.liveStreamingDetails?.actualEndTime,
     durationSeconds,
     language,
     topics: classifyTopics(`${title} ${description} ${item.snippet.channelTitle || ""}`, language),

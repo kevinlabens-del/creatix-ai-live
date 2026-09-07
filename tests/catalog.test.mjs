@@ -4,7 +4,10 @@ import {
   countCatalog,
   filterCatalog,
   formatCountdown,
+  formatDateTime,
   formatDuration,
+  getConferenceTimingLabel,
+  getStatusLabel,
   isPlayableConference,
 } from "../src/catalog.js";
 
@@ -49,6 +52,26 @@ test("formatCountdown gère les événements futurs", () => {
   const now = new Date("2026-09-07T12:00:00.000Z").getTime();
   assert.equal(formatCountdown("2026-09-08T14:30:00.000Z", now), "Dans 1 j 2 h");
   assert.equal(formatCountdown("2026-09-07T12:20:00.000Z", now), "Dans 20 min");
+});
+
+test("les vignettes distinguent clairement présent, futur et passé", () => {
+  const upcoming = {
+    ...videos[0],
+    status: "upcoming",
+    scheduledStart: "2026-09-09T00:00:00.000Z",
+  };
+  const completedLive = {
+    ...videos[1],
+    actualEnd: "2026-09-06T20:00:00.000Z",
+  };
+
+  assert.equal(getStatusLabel(videos[0]), "En direct maintenant");
+  assert.equal(getStatusLabel(upcoming), "Direct à venir");
+  assert.equal(getStatusLabel(completedLive), "Direct passé · Replay");
+  assert.equal(getStatusLabel(videos[1]), "Conférence passée · Replay");
+  assert.match(getConferenceTimingLabel(upcoming), /^Prévu · .*2026/);
+  assert.match(getConferenceTimingLabel(completedLive), /^Terminé · .*2026/);
+  assert.match(formatDateTime(upcoming.scheduledStart), /2026/);
 });
 
 test("filterCatalog combine recherche, langue, thème et favoris", () => {

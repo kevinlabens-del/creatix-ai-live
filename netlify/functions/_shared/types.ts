@@ -14,6 +14,7 @@ export interface Conference {
   publishedAt: string;
   scheduledStart?: string;
   actualStart?: string;
+  actualEnd?: string;
   durationSeconds: number | null;
   language: ConferenceLanguage;
   topics: string[];

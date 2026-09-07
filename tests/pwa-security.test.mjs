@@ -19,7 +19,7 @@ test("le manifeste possède les icônes d’installation requises", () => {
 });
 
 test("le service worker n’intercepte ni les flux vidéo ni les domaines distants", () => {
-  assert.match(serviceWorker, /creatix-ai-live-v3\.1\.1/);
+  assert.match(serviceWorker, /creatix-ai-live-v3\.2\.0/);
   assert.match(serviceWorker, /url\.origin !== self\.location\.origin/);
   assert.match(serviceWorker, /request\.destination === "video"/);
   assert.match(serviceWorker, /mp4\|webm\|m3u8\|ts/);

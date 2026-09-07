@@ -1048,6 +1048,12 @@ main {
   top: 10px;
   left: 10px;
   z-index: 3;
+  max-width: calc(100% - 64px);
+  overflow: hidden;
+  font-size: 0.61rem;
+  letter-spacing: 0.055em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-countdown {
@@ -1109,6 +1115,11 @@ main {
 .card-footer {
   padding-top: 11px;
   border-top: 1px solid rgba(151, 170, 215, 0.1);
+}
+
+.card-footer span:first-child {
+  min-width: 0;
+  line-height: 1.45;
 }
 
 .card-source {

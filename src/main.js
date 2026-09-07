@@ -5,9 +5,8 @@ import {
   countCatalog,
   filterCatalog,
   formatCountdown,
-  formatDate,
-  formatDateTime,
   formatDuration,
+  getConferenceTimingLabel,
   getStatusLabel,
   isPlayableConference,
   sortForDisplay,
@@ -82,7 +81,7 @@ document.querySelector("#app").innerHTML = `
             </div>
             <div class="player-chrome" aria-hidden="true">
               <span>CR3@TIX // INTERNAL STREAM</span>
-              <span>V3.1.1</span>
+              <span>V3.2</span>
             </div>
             <button id="fullscreen-player" class="fullscreen-button" type="button" aria-label="Afficher le lecteur en plein écran" title="Plein écran">
               ⛶
@@ -346,7 +345,7 @@ function renderSelected() {
   elements.title.textContent = video.title;
   elements.channel.textContent = video.channel;
   elements.description.textContent = video.description || "Conférence disponible dans le lecteur intégré.";
-  elements.status.textContent = getStatusLabel(video.status);
+  elements.status.textContent = getStatusLabel(video);
   elements.status.className = `status-badge status-${video.status}`;
   elements.source.textContent = getSourceLabel(video);
   elements.favoriteSelected.disabled = false;
@@ -361,9 +360,9 @@ function renderSelected() {
   if (video.status === "upcoming" && video.scheduledStart) {
     const countdown = makeFact(formatCountdown(video.scheduledStart), "countdown");
     countdown.dataset.time = video.scheduledStart;
-    elements.facts.append(countdown, makeFact(formatDateTime(video.scheduledStart)));
+    elements.facts.append(countdown, makeFact(getConferenceTimingLabel(video)));
   } else {
-    elements.facts.append(makeFact(formatDate(video.publishedAt)));
+    elements.facts.append(makeFact(getConferenceTimingLabel(video)));
   }
   elements.facts.append(makeFact(formatDuration(video.durationSeconds)));
   elements.facts.append(makeFact(video.language === "fr" ? "FR" : video.language === "en" ? "EN" : "MULTI"));
@@ -400,7 +399,7 @@ function createCard(video) {
   }, { once: true });
   const play = createTextElement("span", "card-play", "▶");
   play.setAttribute("aria-hidden", "true");
-  const status = createTextElement("span", `card-status status-${video.status}`, getStatusLabel(video.status));
+  const status = createTextElement("span", `card-status status-${video.status}`, getStatusLabel(video));
   visual.append(image, play, status);
   if (video.status === "upcoming" && video.scheduledStart) {
     const countdown = createTextElement("span", "card-countdown countdown", formatCountdown(video.scheduledStart));
@@ -423,9 +422,7 @@ function createCard(video) {
     createTextElement(
       "span",
       "",
-      video.status === "upcoming" && video.scheduledStart
-        ? formatDateTime(video.scheduledStart)
-        : formatDate(video.publishedAt),
+      getConferenceTimingLabel(video),
     ),
     createTextElement("span", "card-source", getSourceLabel(video)),
   );

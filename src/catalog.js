@@ -50,13 +50,11 @@ export function formatDate(value, locale = "fr-FR") {
 export function formatDateTime(value, locale = "fr-FR") {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Horaire à confirmer";
-  return new Intl.DateTimeFormat(locale, {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
+  const time = new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+  return `${formatDate(value, locale)} · ${time}`;
 }
 
 export function formatCountdown(value, now = Date.now()) {
@@ -71,10 +69,27 @@ export function formatCountdown(value, now = Date.now()) {
   return `Dans ${Math.max(1, minutes)} min`;
 }
 
-export function getStatusLabel(status) {
-  if (status === "live") return "En direct";
-  if (status === "upcoming") return "À venir";
-  return "Replay";
+export function getStatusLabel(video) {
+  const status = typeof video === "string" ? video : video?.status;
+  if (status === "live") return "En direct maintenant";
+  if (status === "upcoming") return "Direct à venir";
+  if (typeof video === "object" && video?.actualEnd) return "Direct passé · Replay";
+  return "Conférence passée · Replay";
+}
+
+export function getConferenceTimingLabel(video) {
+  if (video?.status === "live") {
+    return video.actualStart
+      ? `Depuis · ${formatDateTime(video.actualStart)}`
+      : "En direct maintenant";
+  }
+  if (video?.status === "upcoming") {
+    return video.scheduledStart
+      ? `Prévu · ${formatDateTime(video.scheduledStart)}`
+      : "Programmation à confirmer";
+  }
+  if (video?.actualEnd) return `Terminé · ${formatDateTime(video.actualEnd)}`;
+  return `Publié · ${formatDate(video?.publishedAt)}`;
 }
 
 export function countCatalog(videos) {

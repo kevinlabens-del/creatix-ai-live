@@ -89,6 +89,20 @@ test("les directs et événements à venir sont classés automatiquement", () =>
   assert.equal(upcoming?.status, "upcoming");
 });
 
+test("un ancien direct conserve sa date de fin pour son statut de replay", () => {
+  const completed = normalizeYouTubeVideo(
+    youtubeItem({
+      liveStreamingDetails: {
+        actualStartTime: "2026-09-06T18:00:00.000Z",
+        actualEndTime: "2026-09-06T20:00:00.000Z",
+      },
+    }),
+    NOW,
+  );
+  assert.equal(completed?.status, "replay");
+  assert.equal(completed?.actualEnd, "2026-09-06T20:00:00.000Z");
+});
+
 test("un événement non traité reste refusé lorsqu’il ne s’agit pas d’un direct", () => {
   assert.equal(
     normalizeYouTubeVideo(
