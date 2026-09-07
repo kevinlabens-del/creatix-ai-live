@@ -1,0 +1,162 @@
+export const STATUS_FILTERS = [
+  { id: "all", label: "Tout le catalogue", icon: "◉" },
+  { id: "live", label: "En direct", icon: "●" },
+  { id: "upcoming", label: "À venir", icon: "◷" },
+  { id: "replay", label: "Replays", icon: "▶" },
+  { id: "latest", label: "Nouveautés", icon: "↗" },
+  { id: "favorites", label: "Favoris", icon: "★" },
+];
+
+export const TOPIC_FILTERS = [
+  "IA générative",
+  "Agents IA",
+  "Robotique",
+  "Développement",
+  "Recherche",
+  "Cybersécurité",
+  "OpenAI",
+  "Gemini",
+  "Claude",
+  "Français",
+  "Anglais",
+];
+
+export function normalizeSearch(value = "") {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+export function formatDuration(totalSeconds) {
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return "Durée variable";
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (hours) return `${hours} h ${String(minutes).padStart(2, "0")}`;
+  return `${minutes} min`;
+}
+
+export function formatDate(value, locale = "fr-FR") {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date à confirmer";
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+export function formatDateTime(value, locale = "fr-FR") {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Horaire à confirmer";
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+export function formatCountdown(value, now = Date.now()) {
+  const remaining = new Date(value).getTime() - now;
+  if (!Number.isFinite(remaining)) return "Horaire à confirmer";
+  if (remaining <= 0) return "Démarrage imminent";
+  const days = Math.floor(remaining / 86400_000);
+  const hours = Math.floor((remaining % 86400_000) / 3600_000);
+  const minutes = Math.floor((remaining % 3600_000) / 60_000);
+  if (days) return `Dans ${days} j ${hours} h`;
+  if (hours) return `Dans ${hours} h ${minutes} min`;
+  return `Dans ${Math.max(1, minutes)} min`;
+}
+
+export function getStatusLabel(status) {
+  if (status === "live") return "En direct";
+  if (status === "upcoming") return "À venir";
+  return "Replay";
+}
+
+export function countCatalog(videos) {
+  return {
+    total: videos.length,
+    live: videos.filter((video) => video.status === "live").length,
+    upcoming: videos.filter((video) => video.status === "upcoming").length,
+    replay: videos.filter((video) => video.status === "replay").length,
+  };
+}
+
+function matchesDate(video, range, now) {
+  if (range === "all") return true;
+  if (video.status === "upcoming") return true;
+  const days = Number(range);
+  if (!Number.isFinite(days)) return true;
+  const timestamp = new Date(video.publishedAt).getTime();
+  return timestamp >= now - days * 86400_000;
+}
+
+function matchesSource(video, source) {
+  if (source === "all") return true;
+  if (source === "direct") return ["mp4", "webm", "hls"].includes(video.source);
+  return video.source === source;
+}
+
+export function filterCatalog(videos, filters, favorites = new Set(), now = Date.now()) {
+  const query = normalizeSearch(filters.query || "");
+  return videos.filter((video) => {
+    if (filters.status === "favorites" && !favorites.has(video.id)) return false;
+    if (["live", "upcoming", "replay"].includes(filters.status) && video.status !== filters.status) {
+      return false;
+    }
+    if (
+      filters.status === "latest" &&
+      new Date(video.publishedAt).getTime() < now - 60 * 86400_000
+    ) {
+      return false;
+    }
+    if (filters.topic !== "all" && !video.topics?.includes(filters.topic)) return false;
+    if (filters.language !== "all" && video.language !== filters.language) return false;
+    if (!matchesSource(video, filters.source, now)) return false;
+    if (!matchesDate(video, filters.date, now)) return false;
+    if (query) {
+      const haystack = normalizeSearch(
+        `${video.title} ${video.channel} ${video.description} ${(video.topics || []).join(" ")}`,
+      );
+      if (!haystack.includes(query)) return false;
+    }
+    return true;
+  });
+}
+
+export function sortForDisplay(videos) {
+  const weight = { live: 3, upcoming: 2, replay: 1 };
+  return [...videos].sort((a, b) => {
+    const statusDifference = (weight[b.status] || 0) - (weight[a.status] || 0);
+    if (statusDifference) return statusDifference;
+    if (a.status === "upcoming" && b.status === "upcoming") {
+      return new Date(a.scheduledStart || a.publishedAt) - new Date(b.scheduledStart || b.publishedAt);
+    }
+    return new Date(b.publishedAt) - new Date(a.publishedAt) || b.score - a.score;
+  });
+}
+
+export function isPlayableConference(video) {
+  if (!video || video.embeddable !== true) return false;
+  if (video.source === "youtube") return /^[\w-]{11}$/.test(video.videoId || "");
+  if (video.source === "vimeo") return /^\d{6,12}$/.test(video.videoId || "");
+  if (["mp4", "webm", "hls"].includes(video.source)) {
+    try {
+      const url = new URL(video.playbackUrl);
+      if (url.protocol !== "https:") return false;
+      const expectedExtension = {
+        mp4: /\.mp4$/i,
+        webm: /\.webm$/i,
+        hls: /\.m3u8$/i,
+      }[video.source];
+      return expectedExtension.test(url.pathname);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
