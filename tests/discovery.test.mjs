@@ -101,6 +101,21 @@ test("un événement non traité reste refusé lorsqu’il ne s’agit pas d’u
   );
 });
 
+test("un événement marqué à venir mais déjà daté dans le passé est exclu", () => {
+  assert.equal(
+    normalizeYouTubeVideo(
+      youtubeItem({
+        snippet: { ...youtubeItem().snippet, liveBroadcastContent: "upcoming" },
+        status: { embeddable: true, privacyStatus: "public", uploadStatus: "uploaded" },
+        contentDetails: { duration: "P0D" },
+        liveStreamingDetails: { scheduledStartTime: "2026-09-01T18:00:00.000Z" },
+      }),
+      NOW,
+    ),
+    null,
+  );
+});
+
 test("discoverYouTubeCatalog regroupe la recherche et valide les détails", async () => {
   const calls = [];
   const fetchImpl = async (input) => {

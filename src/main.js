@@ -82,7 +82,7 @@ document.querySelector("#app").innerHTML = `
             </div>
             <div class="player-chrome" aria-hidden="true">
               <span>CR3@TIX // INTERNAL STREAM</span>
-              <span>V3.1</span>
+              <span>V3.1.1</span>
             </div>
             <button id="fullscreen-player" class="fullscreen-button" type="button" aria-label="Afficher le lecteur en plein écran" title="Plein écran">
               ⛶

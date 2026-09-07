@@ -189,18 +189,17 @@ export function classifyTopics(textValue: string, language: ConferenceLanguage) 
 
 export function getStatus(item: YouTubeVideoItem, now = new Date()): ConferenceStatus {
   const live = item.liveStreamingDetails;
+  if (live?.actualEndTime) return "replay";
   if (
     item.snippet?.liveBroadcastContent === "live" ||
     (live?.actualStartTime && !live.actualEndTime)
   ) {
     return "live";
   }
-  if (
-    item.snippet?.liveBroadcastContent === "upcoming" ||
-    (live?.scheduledStartTime &&
-      !live.actualStartTime &&
-      new Date(live.scheduledStartTime).getTime() > now.getTime())
-  ) {
+  const scheduledStart = live?.scheduledStartTime
+    ? new Date(live.scheduledStartTime).getTime()
+    : Number.NaN;
+  if (!live?.actualStartTime && Number.isFinite(scheduledStart) && scheduledStart > now.getTime()) {
     return "upcoming";
   }
   return "replay";

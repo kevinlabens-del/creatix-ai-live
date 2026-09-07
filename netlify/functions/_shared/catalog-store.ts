@@ -4,8 +4,8 @@ import { discoverYouTubeCatalog } from "./discovery";
 import type { CatalogPayload } from "./types";
 
 const STORE_NAME = "creatix-ai-live-catalog";
-const CATALOG_KEY = "catalog-v3.1";
-const LEGACY_CATALOG_KEY = "catalog-v3";
+const CATALOG_KEY = "catalog-v3.1.1";
+const LEGACY_CATALOG_KEYS = ["catalog-v3.1", "catalog-v3"];
 
 export const fallbackCatalog = seedCatalogJson as CatalogPayload;
 
@@ -27,9 +27,12 @@ export async function readStoredCatalog(deployContext?: string) {
 
 export async function readLegacyCatalog(deployContext?: string) {
   try {
-    return (await catalogStore(deployContext).get(LEGACY_CATALOG_KEY, {
-      type: "json",
-    })) as CatalogPayload | null;
+    const store = catalogStore(deployContext);
+    for (const key of LEGACY_CATALOG_KEYS) {
+      const catalog = (await store.get(key, { type: "json" })) as CatalogPayload | null;
+      if (catalog?.videos?.length) return catalog;
+    }
+    return null;
   } catch {
     return null;
   }
