@@ -7,6 +7,7 @@ const serviceWorker = readFileSync(new URL("../public/service-worker.js", import
 const player = readFileSync(new URL("../src/player.js", import.meta.url), "utf8");
 const main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const conferencesFunction = readFileSync(new URL("../netlify/functions/conferences.ts", import.meta.url), "utf8");
 
 test("le manifeste possède les icônes d’installation requises", () => {
   assert.equal(manifest.display, "standalone");
@@ -18,9 +19,17 @@ test("le manifeste possède les icônes d’installation requises", () => {
 });
 
 test("le service worker n’intercepte ni les flux vidéo ni les domaines distants", () => {
+  assert.match(serviceWorker, /creatix-ai-live-v3\.1\.0/);
   assert.match(serviceWorker, /url\.origin !== self\.location\.origin/);
   assert.match(serviceWorker, /request\.destination === "video"/);
   assert.match(serviceWorker, /mp4\|webm\|m3u8\|ts/);
+});
+
+test("le catalogue réseau évite les réponses périmées et tolère un démarrage mobile lent", () => {
+  assert.match(main, /CATALOG_REQUEST_TIMEOUT_MS = 30_000/);
+  assert.match(main, /cache: "no-store"/);
+  assert.match(main, /scheduleCatalogRecovery/);
+  assert.match(conferencesFunction, /"Cache-Control": "no-store, max-age=0"/);
 });
 
 test("le lecteur bloque les ouvertures et navigations sortantes", () => {

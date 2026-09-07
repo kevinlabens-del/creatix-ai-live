@@ -2,6 +2,7 @@ import type { Config, Context } from "@netlify/functions";
 import {
   fallbackCatalog,
   isCatalogStale,
+  readLegacyCatalog,
   readStoredCatalog,
   refreshCatalog,
 } from "./_shared/catalog-store";
@@ -9,7 +10,7 @@ import type { CatalogPayload } from "./_shared/types";
 
 const RESPONSE_HEADERS = {
   "Content-Type": "application/json; charset=utf-8",
-  "Cache-Control": "public, max-age=120, s-maxage=900, stale-while-revalidate=3600",
+  "Cache-Control": "no-store, max-age=0",
   "X-Content-Type-Options": "nosniff",
   "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
 };
@@ -26,15 +27,13 @@ export default async (request: Request, context: Context) => {
     return json({ error: "method_not_allowed" }, 405);
   }
 
-  const url = new URL(request.url);
-  const refreshRequested = url.searchParams.get("refresh") === "1";
   const deployContext = context.deploy?.context || "dev";
   const apiKey = Netlify.env.get("YOUTUBE_API_KEY")?.trim();
   const stored = await readStoredCatalog(deployContext);
-  let catalog: CatalogPayload | null = stored;
+  const legacy = stored?.videos?.length ? null : await readLegacyCatalog(deployContext);
+  let catalog: CatalogPayload | null = stored || legacy;
 
-  const refreshAge = refreshRequested ? 15 * 60_000 : 6 * 3600_000;
-  if (apiKey && isCatalogStale(stored, refreshAge)) {
+  if (apiKey && isCatalogStale(stored, 6 * 3600_000)) {
     try {
       catalog = await refreshCatalog(apiKey, deployContext);
     } catch (error) {

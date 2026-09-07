@@ -79,6 +79,7 @@ test("les directs et événements à venir sont classés automatiquement", () =>
     youtubeItem({
       id: "lmnopqrstuv",
       snippet: { ...youtubeItem().snippet, liveBroadcastContent: "upcoming" },
+      status: { embeddable: true, privacyStatus: "public", uploadStatus: "uploaded" },
       contentDetails: { duration: "P0D" },
       liveStreamingDetails: { scheduledStartTime: "2026-09-08T18:00:00.000Z" },
     }),
@@ -86,6 +87,18 @@ test("les directs et événements à venir sont classés automatiquement", () =>
   );
   assert.equal(live?.status, "live");
   assert.equal(upcoming?.status, "upcoming");
+});
+
+test("un événement non traité reste refusé lorsqu’il ne s’agit pas d’un direct", () => {
+  assert.equal(
+    normalizeYouTubeVideo(
+      youtubeItem({
+        status: { embeddable: true, privacyStatus: "public", uploadStatus: "uploaded" },
+      }),
+      NOW,
+    ),
+    null,
+  );
 });
 
 test("discoverYouTubeCatalog regroupe la recherche et valide les détails", async () => {
@@ -111,6 +124,14 @@ test("discoverYouTubeCatalog regroupe la recherche et valide les détails", asyn
   assert.equal(catalog.mode, "youtube-api");
   assert.equal(catalog.videos.length, 1);
   assert.equal(catalog.videos[0].videoId, "abcdefghijk");
-  assert.equal(calls.filter((url) => url.pathname.endsWith("/search")).length, 3);
+  const searchCalls = calls.filter((url) => url.pathname.endsWith("/search"));
+  const eventCalls = searchCalls.filter((url) => url.searchParams.has("eventType"));
+  assert.equal(searchCalls.length, 5);
+  assert.equal(eventCalls.length, 4);
+  assert.deepEqual(
+    new Set(eventCalls.map((url) => `${url.searchParams.get("eventType")}:${url.searchParams.get("relevanceLanguage")}`)),
+    new Set(["live:fr", "upcoming:fr", "live:en", "upcoming:en"]),
+  );
+  assert.ok(eventCalls.every((url) => url.searchParams.get("maxResults") === "25"));
   assert.ok(calls.every((url) => url.searchParams.get("key") === "server-only-key"));
 });

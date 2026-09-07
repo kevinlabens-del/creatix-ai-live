@@ -4,7 +4,8 @@ import { discoverYouTubeCatalog } from "./discovery";
 import type { CatalogPayload } from "./types";
 
 const STORE_NAME = "creatix-ai-live-catalog";
-const CATALOG_KEY = "catalog-v3";
+const CATALOG_KEY = "catalog-v3.1";
+const LEGACY_CATALOG_KEY = "catalog-v3";
 
 export const fallbackCatalog = seedCatalogJson as CatalogPayload;
 
@@ -24,6 +25,16 @@ export async function readStoredCatalog(deployContext?: string) {
   }
 }
 
+export async function readLegacyCatalog(deployContext?: string) {
+  try {
+    return (await catalogStore(deployContext).get(LEGACY_CATALOG_KEY, {
+      type: "json",
+    })) as CatalogPayload | null;
+  } catch {
+    return null;
+  }
+}
+
 export async function saveCatalog(catalog: CatalogPayload, deployContext?: string) {
   await catalogStore(deployContext).setJSON(CATALOG_KEY, catalog);
 }
@@ -35,7 +46,12 @@ export function isCatalogStale(catalog: CatalogPayload | null, maxAgeMs = 6 * 36
 
 export async function refreshCatalog(apiKey: string, deployContext?: string) {
   const stored = await readStoredCatalog(deployContext);
-  const startingCatalog = stored?.videos?.length ? stored : fallbackCatalog;
+  const legacy = stored?.videos?.length ? null : await readLegacyCatalog(deployContext);
+  const startingCatalog = stored?.videos?.length
+    ? stored
+    : legacy?.videos?.length
+      ? legacy
+      : fallbackCatalog;
   const refreshed = await discoverYouTubeCatalog(apiKey, startingCatalog.videos);
   await saveCatalog(refreshed, deployContext);
   return refreshed;

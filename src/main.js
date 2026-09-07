@@ -16,8 +16,11 @@ import { loadPlayer, requestPlayerFullscreen } from "./player";
 
 const FAVORITES_KEY = "creatix-ai-live:favorites:v3";
 const SELECTED_KEY = "creatix-ai-live:selected:v3";
+const CATALOG_REQUEST_TIMEOUT_MS = 30_000;
+const CATALOG_RECOVERY_DELAY_MS = 8_000;
 const validStatuses = new Set(STATUS_FILTERS.map((item) => item.id));
 const initialStatus = new URLSearchParams(window.location.search).get("status");
+let catalogRecoveryTimer = null;
 
 const state = {
   videos: [],
@@ -79,7 +82,7 @@ document.querySelector("#app").innerHTML = `
             </div>
             <div class="player-chrome" aria-hidden="true">
               <span>CR3@TIX // INTERNAL STREAM</span>
-              <span>V3.0</span>
+              <span>V3.1</span>
             </div>
             <button id="fullscreen-player" class="fullscreen-button" type="button" aria-label="Afficher le lecteur en plein écran" title="Plein écran">
               ⛶
@@ -566,10 +569,11 @@ function resetFilters() {
 
 async function requestCatalog(forceRefresh = false) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12_000);
+  const timeout = setTimeout(() => controller.abort(), CATALOG_REQUEST_TIMEOUT_MS);
   try {
     const query = forceRefresh ? `?refresh=1&t=${Date.now()}` : "";
     const response = await fetch(`/api/conferences${query}`, {
+      cache: "no-store",
       headers: { Accept: "application/json" },
       signal: controller.signal,
     });
@@ -580,21 +584,35 @@ async function requestCatalog(forceRefresh = false) {
   }
 }
 
-async function loadCatalog(forceRefresh = false) {
-  if (state.refreshing) return;
+function scheduleCatalogRecovery() {
+  if (!navigator.onLine || catalogRecoveryTimer !== null) return;
+  catalogRecoveryTimer = window.setTimeout(() => {
+    catalogRecoveryTimer = null;
+    loadCatalog(false, { allowFallback: false, silent: true });
+  }, CATALOG_RECOVERY_DELAY_MS);
+}
+
+async function loadCatalog(
+  forceRefresh = false,
+  { allowFallback = true, silent = false } = {},
+) {
+  if (state.refreshing) return false;
   state.refreshing = true;
   elements.refresh.classList.add("is-loading");
   elements.refresh.disabled = true;
   try {
     let payload;
+    let usedFallback = false;
     try {
       payload = await requestCatalog(forceRefresh);
-    } catch {
+    } catch (error) {
+      if (!allowFallback) throw error;
       const fallback = await fetch("/data/seed-catalog.json", { cache: "no-store" });
       if (!fallback.ok) throw new Error("Catalogue local indisponible");
       payload = await fallback.json();
+      usedFallback = true;
       payload.notice = navigator.onLine
-        ? "Le catalogue vérifié local a pris le relais."
+        ? "Le catalogue local a pris le relais. Nouvelle tentative automatique en cours."
         : "Mode hors connexion : dernier catalogue vérifié.";
     }
 
@@ -616,11 +634,23 @@ async function loadCatalog(forceRefresh = false) {
     const preferred = state.videos.find((video) => video.id === persisted)?.id;
     const live = state.videos.find((video) => video.status === "live")?.id;
     const nextSelection = preferred || live || sortForDisplay(state.videos)[0].id;
-    selectVideo(nextSelection, { autoplay: false, scroll: false });
+    const playerIsAlreadyLoaded =
+      state.selectedId === nextSelection &&
+      Boolean(elements.player.querySelector("iframe, video"));
+    if (!playerIsAlreadyLoaded) {
+      selectVideo(nextSelection, { autoplay: false, scroll: false });
+    }
     renderAll();
+    if (usedFallback) scheduleCatalogRecovery();
+    else if (catalogRecoveryTimer !== null) {
+      window.clearTimeout(catalogRecoveryTimer);
+      catalogRecoveryTimer = null;
+    }
     if (forceRefresh) showToast("Catalogue vérifié et actualisé.");
     else if (state.notice) showToast(state.notice);
+    return !usedFallback;
   } catch (error) {
+    if (silent && state.videos.length) return false;
     elements.grid.setAttribute("aria-busy", "false");
     elements.grid.replaceChildren();
     elements.grid.hidden = true;
@@ -628,6 +658,7 @@ async function loadCatalog(forceRefresh = false) {
     elements.empty.querySelector("h3").textContent = "Catalogue momentanément indisponible";
     elements.empty.querySelector("p").textContent = "Une nouvelle tentative sera possible dans un instant.";
     showToast(error instanceof Error ? error.message : "Impossible de charger le catalogue.");
+    return false;
   } finally {
     state.refreshing = false;
     elements.refresh.classList.remove("is-loading");
@@ -645,6 +676,7 @@ function updateNetworkState() {
   const online = navigator.onLine;
   elements.network.classList.toggle("is-offline", !online);
   elements.network.querySelector("span").textContent = online ? "Connexion active" : "Mode hors connexion";
+  if (online && !state.loading && state.mode !== "youtube-api") scheduleCatalogRecovery();
 }
 
 elements.statusTabs.addEventListener("click", (event) => {

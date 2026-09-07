@@ -26,6 +26,11 @@ export const DISCOVERY_QUERIES = [
   { query: "Claude Anthropic conference", language: "en" },
 ] as const;
 
+export const EVENT_DISCOVERY_QUERIES = [
+  { query: "intelligence artificielle conférence|webinaire", language: "fr" },
+  { query: "artificial intelligence conference|webinar", language: "en" },
+] as const;
+
 type FetchLike = typeof fetch;
 
 interface YouTubeSearchItem {
@@ -302,10 +307,16 @@ export function normalizeYouTubeVideo(
   now = new Date(),
 ): Conference | null {
   if (!item.id || !item.snippet) return null;
+  const status = getStatus(item, now);
+  const uploadStatus = item.status?.uploadStatus || "";
+  const uploadIsPlayable =
+    status === "replay"
+      ? uploadStatus === "processed"
+      : uploadStatus === "processed" || uploadStatus === "uploaded";
   if (
     item.status?.embeddable !== true ||
     item.status?.privacyStatus !== "public" ||
-    item.status?.uploadStatus !== "processed"
+    !uploadIsPlayable
   ) {
     return null;
   }
@@ -317,7 +328,6 @@ export function normalizeYouTubeVideo(
     return null;
   }
 
-  const status = getStatus(item, now);
   const durationSeconds = parseIsoDuration(item.contentDetails?.duration);
   if (
     status === "replay" &&
@@ -394,7 +404,7 @@ async function searchVideoIds(
   const params: Record<string, string> = {
     part: "snippet",
     type: "video",
-    maxResults: "10",
+    maxResults: eventType ? "25" : "10",
     q: query,
     order: eventType ? "date" : "relevance",
     safeSearch: "strict",
@@ -483,8 +493,10 @@ export async function discoverYouTubeCatalog(
     ...topicQueries.map((entry) =>
       searchVideoIds(apiKey, entry.query, entry.language, fetchImpl, now),
     ),
-    searchVideoIds(apiKey, "artificial intelligence conference", "en", fetchImpl, now, "live"),
-    searchVideoIds(apiKey, "artificial intelligence conference", "en", fetchImpl, now, "upcoming"),
+    ...EVENT_DISCOVERY_QUERIES.flatMap((entry) => [
+      searchVideoIds(apiKey, entry.query, entry.language, fetchImpl, now, "live"),
+      searchVideoIds(apiKey, entry.query, entry.language, fetchImpl, now, "upcoming"),
+    ]),
   ];
   const searchResults = await Promise.allSettled(searches);
   const discoveredIds = searchResults.flatMap((result) =>
