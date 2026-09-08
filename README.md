@@ -1,4 +1,4 @@
-# CR3@TIX AI LIVE — V3
+# CR3@TIX AI LIVE — V3.2.2
 
 Plateforme PWA de découverte et de lecture de conférences sur l’intelligence artificielle.
 
@@ -12,31 +12,32 @@ La règle du catalogue est stricte : **pas intégrable = pas affiché**. La lect
 - Favoris stockés uniquement sur l’appareil.
 - PWA installable, responsive et utilisable avec le dernier catalogue en cache.
 - Catalogue de secours composé de conférences vérifiées et intégrables.
-- Découverte YouTube automatique côté serveur quand `YOUTUBE_API_KEY` est configurée.
+- Publication principale sur GitHub Pages, compatible avec le sous-chemin du dépôt.
+- Découverte YouTube automatique durant le workflow quand `YOUTUBE_API_KEY` est configurée.
 - Validation systématique avec `privacyStatus=public`, `uploadStatus=processed` et `embeddable=true`.
-- Actualisation planifiée toutes les six heures et cache persistant Netlify Blobs.
+- Reconstruction et republication automatiques toutes les six heures par GitHub Actions.
 
 ## Architecture
 
 ```text
-Navigateur
-  ├── interface Vite + favoris locaux
-  ├── lecteur interne YouTube / Vimeo / HTML5 / HLS
-  └── GET /api/conferences
-          └── Netlify Function
-                ├── catalogue Netlify Blobs
-                ├── validation YouTube Data API
-                └── catalogue vérifié de secours
+GitHub Actions (toutes les 6 h)
+  ├── collecte YouTube Data API si le secret est disponible
+  ├── relais temporaire vers le catalogue existant pendant la migration
+  ├── validation → dédoublonnage → catalogue JSON statique
+  └── build Vite → artefact → GitHub Pages
 
-Netlify Scheduled Function (toutes les 6 h)
-  └── recherche multi-requêtes → score → validation → dédoublonnage → cache
+Navigateur
+  ├── application servie par GitHub Pages
+  ├── catalogue JSON statique actualisé
+  ├── favoris locaux
+  └── lecteur interne YouTube / Vimeo / HTML5 / HLS
 ```
 
-La clé API n’est jamais accessible au navigateur. Elle est lue uniquement par les fonctions via `Netlify.env.get("YOUTUBE_API_KEY")`.
+La clé API n’est jamais accessible au navigateur. GitHub Actions la lit uniquement depuis le secret `YOUTUBE_API_KEY` et ne l’intègre pas au build.
 
 ## Développement
 
-Prérequis : Node.js 20 ou plus récent.
+Prérequis : Node.js 24.
 
 ```bash
 npm install
@@ -49,7 +50,25 @@ Vérification complète :
 npm run check
 ```
 
-## Configuration Netlify
+## Publication GitHub Pages
+
+Le workflow `.github/workflows/pages.yml` publie automatiquement la branche `main` et relance la collecte toutes les six heures. Le build utilise le chemin `/creatix-ai-live/`, y compris pour le manifeste, les icônes, le service worker et les catalogues.
+
+Adresse de production attendue :
+
+```text
+https://kevinlabens-del.github.io/creatix-ai-live/
+```
+
+Pour rendre la collecte indépendante de l’ancien hébergement, ajouter dans les secrets GitHub Actions :
+
+```text
+YOUTUBE_API_KEY=<clé YouTube Data API v3>
+```
+
+En attendant ce transfert, le workflow récupère le catalogue déjà validé par l’ancien service au moment du build, puis l’intègre sous forme de fichier statique à GitHub Pages. L’application exécutée par les visiteurs reste servie par GitHub Pages.
+
+## Ancienne configuration Netlify
 
 Définir la variable secrète suivante dans les variables d’environnement du projet :
 
@@ -59,7 +78,7 @@ YOUTUBE_API_KEY=<clé YouTube Data API v3>
 
 Ne jamais utiliser le préfixe `VITE_` pour cette clé et ne jamais la placer dans `.env` versionné.
 
-Le déploiement utilise :
+La configuration historique utilise :
 
 - commande de build : `npm run build` ;
 - dossier publié : `dist` ;

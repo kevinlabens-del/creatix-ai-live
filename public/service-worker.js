@@ -1,22 +1,24 @@
-const CACHE_NAME = "creatix-ai-live-v3.2.1";
+const CACHE_NAME = "creatix-ai-live-v3.2.2-pages";
+const APP_BASE = new URL("./", self.location.href).pathname;
+const appPath = (path = "") => new URL(path, self.registration.scope).pathname;
 const APP_SHELL = [
-  "/",
-  "/manifest.webmanifest",
-  "/icons/icon.svg",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/data/seed-catalog.json",
+  APP_BASE,
+  appPath("manifest.webmanifest"),
+  appPath("icons/icon.svg"),
+  appPath("icons/icon-192.png"),
+  appPath("icons/icon-512.png"),
+  appPath("data/seed-catalog.json"),
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
       await cache.addAll(APP_SHELL);
-      const indexResponse = await cache.match("/");
+      const indexResponse = await cache.match(APP_BASE);
       if (!indexResponse) return;
       const html = await indexResponse.text();
-      const builtAssets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map(
-        (match) => match[1],
+      const builtAssets = [...html.matchAll(/(?:src|href)="([^"]*\/assets\/[^"]+)"/g)].map(
+        (match) => new URL(match[1], self.location.origin).pathname,
       );
       if (builtAssets.length) await cache.addAll([...new Set(builtAssets)]);
     }),
@@ -52,7 +54,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname.startsWith("/api/")) {
+  if (url.pathname.startsWith(appPath("api/"))) {
     event.respondWith(
       fetch(request).catch(
         () =>
@@ -70,10 +72,10 @@ self.addEventListener("fetch", (event) => {
       fetch(request)
         .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put("/", copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put(APP_BASE, copy));
           return response;
         })
-        .catch(() => caches.match("/")),
+        .catch(() => caches.match(APP_BASE)),
     );
     return;
   }

@@ -7,3 +7,4 @@ dist/
 *.log
 coverage/
 screenshots/
+public/data/catalog.json

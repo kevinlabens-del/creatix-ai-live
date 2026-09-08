@@ -1,12 +1,12 @@
 {
-  "id": "/",
+  "id": "./",
   "name": "CR3@TIX AI LIVE",
   "short_name": "AI LIVE",
   "description": "Toute l'IA en conférences, directement dans votre lecteur.",
   "lang": "fr",
   "dir": "ltr",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#05060d",
@@ -14,19 +14,19 @@
   "categories": ["education", "news", "technology", "entertainment"],
   "icons": [
     {
-      "src": "/icons/icon.svg",
+      "src": "icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-192.png",
+      "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -36,14 +36,14 @@
     {
       "name": "En direct",
       "short_name": "Direct",
-      "url": "/?status=live",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "url": "./?status=live",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Favoris",
       "short_name": "Favoris",
-      "url": "/?status=favorites",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "url": "./?status=favorites",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

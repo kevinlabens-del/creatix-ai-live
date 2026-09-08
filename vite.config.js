@@ -1,6 +1,8 @@
 import { defineConfig } from "vite";
 import { readFileSync } from "node:fs";
 
+const base = process.env.VITE_BASE_PATH || "/";
+
 function localCatalogApi() {
   const seedPath = new URL("./public/data/seed-catalog.json", import.meta.url);
   return {
@@ -17,6 +19,7 @@ function localCatalogApi() {
 }
 
 export default defineConfig({
+  base,
   plugins: [localCatalogApi()],
   server: {
     host: process.env.VITE_HOST || "0.0.0.0",

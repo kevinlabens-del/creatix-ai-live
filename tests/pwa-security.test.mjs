@@ -7,22 +7,48 @@ const serviceWorker = readFileSync(new URL("../public/service-worker.js", import
 const player = readFileSync(new URL("../src/player.js", import.meta.url), "utf8");
 const main = readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const viteConfig = readFileSync(new URL("../vite.config.js", import.meta.url), "utf8");
+const pagesWorkflow = readFileSync(new URL("../.github/workflows/pages.yml", import.meta.url), "utf8");
+const pagesCatalog = readFileSync(new URL("../scripts/prepare-pages-catalog.mjs", import.meta.url), "utf8");
 const conferencesFunction = readFileSync(new URL("../netlify/functions/conferences.ts", import.meta.url), "utf8");
 
 test("le manifeste possède les icônes d’installation requises", () => {
   assert.equal(manifest.display, "standalone");
-  assert.equal(manifest.start_url, "/");
+  assert.equal(manifest.start_url, "./");
+  assert.equal(manifest.scope, "./");
   for (const size of [192, 512]) {
     assert.ok(manifest.icons.some((icon) => icon.sizes === `${size}x${size}`));
+    assert.ok(manifest.icons.every((icon) => !icon.src.startsWith("/")));
     assert.ok(existsSync(new URL(`../public/icons/icon-${size}.png`, import.meta.url)));
   }
 });
 
 test("le service worker n’intercepte ni les flux vidéo ni les domaines distants", () => {
-  assert.match(serviceWorker, /creatix-ai-live-v3\.2\.1/);
+  assert.match(serviceWorker, /creatix-ai-live-v3\.2\.2-pages/);
+  assert.match(serviceWorker, /self\.registration\.scope/);
+  assert.match(serviceWorker, /APP_BASE/);
   assert.match(serviceWorker, /url\.origin !== self\.location\.origin/);
   assert.match(serviceWorker, /request\.destination === "video"/);
   assert.match(serviceWorker, /mp4\|webm\|m3u8\|ts/);
+});
+
+test("les chemins de l’application s’adaptent au sous-dossier GitHub Pages", () => {
+  assert.match(viteConfig, /VITE_BASE_PATH/);
+  assert.match(main, /import\.meta\.env\.BASE_URL/);
+  assert.match(main, /VITE_STATIC_CATALOG/);
+  assert.match(main, /data\/catalog\.json/);
+  assert.match(html, /%BASE_URL%manifest\.webmanifest/);
+  assert.doesNotMatch(main, /src="\/icons\//);
+});
+
+test("le workflow GitHub Pages construit, actualise et publie l’application", () => {
+  assert.match(pagesWorkflow, /cron: "15 \*\/6 \* \* \*"/);
+  assert.match(pagesWorkflow, /actions\/upload-pages-artifact@v4/);
+  assert.match(pagesWorkflow, /actions\/deploy-pages@v4/);
+  assert.match(pagesWorkflow, /VITE_BASE_PATH: \/creatix-ai-live\//);
+  assert.match(pagesWorkflow, /VITE_STATIC_CATALOG: "true"/);
+  assert.match(pagesCatalog, /YOUTUBE_API_KEY/);
+  assert.match(pagesCatalog, /CATALOG_SOURCE_URL/);
 });
 
 test("le catalogue réseau évite les réponses périmées et tolère un démarrage mobile lent", () => {

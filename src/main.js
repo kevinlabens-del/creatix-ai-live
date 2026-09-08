@@ -17,6 +17,10 @@ const FAVORITES_KEY = "creatix-ai-live:favorites:v3";
 const SELECTED_KEY = "creatix-ai-live:selected:v3";
 const CATALOG_REQUEST_TIMEOUT_MS = 30_000;
 const CATALOG_RECOVERY_DELAY_MS = 8_000;
+const APP_BASE_URL = import.meta.env.BASE_URL;
+const appUrl = (path = "") => `${APP_BASE_URL}${path.replace(/^\/+/, "")}`;
+const STATIC_CATALOG = import.meta.env.VITE_STATIC_CATALOG === "true";
+const CATALOG_URL = STATIC_CATALOG ? appUrl("data/catalog.json") : "/api/conferences";
 const validStatuses = new Set(STATUS_FILTERS.map((item) => item.id));
 const initialStatus = new URLSearchParams(window.location.search).get("status");
 let catalogRecoveryTimer = null;
@@ -44,7 +48,7 @@ document.querySelector("#app").innerHTML = `
   <div class="app-shell">
     <header class="topbar">
       <div class="brand-lockup" aria-label="CR3@TIX AI LIVE">
-        <img class="brand-mark" src="/icons/icon.svg" alt="" width="48" height="48">
+        <img class="brand-mark" src="${appUrl("icons/icon.svg")}" alt="" width="48" height="48">
         <div>
           <p class="eyebrow">CR3@TIX</p>
           <h1>AI <span>LIVE</span></h1>
@@ -75,13 +79,13 @@ document.querySelector("#app").innerHTML = `
           <div class="player-frame">
             <div id="video-player" class="video-player" aria-live="polite">
               <div class="player-placeholder">
-                <img src="/icons/icon.svg" alt="" width="88" height="88">
+                <img src="${appUrl("icons/icon.svg")}" alt="" width="88" height="88">
                 <p>Préparation du lecteur intégré…</p>
               </div>
             </div>
             <div class="player-chrome" aria-hidden="true">
               <span>CR3@TIX // INTERNAL STREAM</span>
-              <span>V3.2.1</span>
+              <span>V3.2.2</span>
             </div>
             <button id="fullscreen-player" class="fullscreen-button" type="button" aria-label="Afficher le lecteur en plein écran" title="Plein écran">
               ⛶
@@ -394,7 +398,7 @@ function createCard(video) {
   image.loading = "lazy";
   image.decoding = "async";
   image.addEventListener("error", () => {
-    image.src = "/icons/icon.svg";
+    image.src = appUrl("icons/icon.svg");
     visual.classList.add("image-fallback");
   }, { once: true });
   const play = createTextElement("span", "card-play", "▶");
@@ -569,7 +573,7 @@ async function requestCatalog(forceRefresh = false) {
   const timeout = setTimeout(() => controller.abort(), CATALOG_REQUEST_TIMEOUT_MS);
   try {
     const query = forceRefresh ? `?refresh=1&t=${Date.now()}` : "";
-    const response = await fetch(`/api/conferences${query}`, {
+    const response = await fetch(`${CATALOG_URL}${query}`, {
       cache: "no-store",
       headers: { Accept: "application/json" },
       signal: controller.signal,
@@ -604,7 +608,7 @@ async function loadCatalog(
       payload = await requestCatalog(forceRefresh);
     } catch (error) {
       if (!allowFallback) throw error;
-      const fallback = await fetch("/data/seed-catalog.json", { cache: "no-store" });
+      const fallback = await fetch(appUrl("data/seed-catalog.json"), { cache: "no-store" });
       if (!fallback.ok) throw new Error("Catalogue local indisponible");
       payload = await fallback.json();
       usedFallback = true;
@@ -754,7 +758,9 @@ window.addEventListener("appinstalled", () => showToast("CR3@TIX AI LIVE est ins
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", async () => {
     try {
-      const registration = await navigator.serviceWorker.register("/service-worker.js", { scope: "/" });
+      const registration = await navigator.serviceWorker.register(appUrl("service-worker.js"), {
+        scope: APP_BASE_URL,
+      });
       registration.update();
     } catch {
       showToast("Installation PWA temporairement indisponible.");
