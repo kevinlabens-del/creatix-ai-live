@@ -17,7 +17,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://i.ytimg.com https://img.youtube.com https://i.vimeocdn.com; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; media-src 'self' https: blob:; connect-src 'self' https:; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://kevinlabens-del.github.io; style-src 'self'; img-src 'self' data: https://i.ytimg.com https://img.youtube.com https://i.vimeocdn.com; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; media-src 'self' https: blob:; connect-src 'self' https:; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'"
     Cross-Origin-Opener-Policy = "same-origin"
     Cross-Origin-Resource-Policy = "cross-origin"
     Referrer-Policy = "strict-origin-when-cross-origin"
