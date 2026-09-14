@@ -18,9 +18,24 @@ function localCatalogApi() {
   };
 }
 
+function supportButtonPlugin() {
+  return {
+    name: "cr3atix-support-button",
+    transformIndexHtml() {
+      return [
+        {
+          tag: "script",
+          attrs: { src: `${base}support-button.js`, defer: true },
+          injectTo: "body",
+        },
+      ];
+    },
+  };
+}
+
 export default defineConfig({
   base,
-  plugins: [localCatalogApi()],
+  plugins: [localCatalogApi(), supportButtonPlugin()],
   server: {
     host: process.env.VITE_HOST || "0.0.0.0",
     allowedHosts: ["terminal.local"],
